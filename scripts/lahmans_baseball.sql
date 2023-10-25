@@ -61,28 +61,44 @@ ORDER BY total_salary DESC;
 
 WITH X AS (
 SELECT 
-	playerid
-	,CASE 
+	CASE 
 		WHEN pos = 'OF' THEN 'Outfield'
 		WHEN pos = 'SS' THEN 'Infield'
 		WHEN pos = '1B' THEN 'Infield'
 		WHEN pos = '2B' THEN 'Infield'
 		WHEN pos = '3B' THEN 'Infield'
-		WHEN pos = 'P' THEN 'battery'
-		WHEN pos = 'C' THEN 'battery'
+		WHEN pos = 'P' THEN 'Battery'
+		WHEN pos = 'C' THEN 'Battery'
 		ELSE 'BLAH' END AS position_groups
-	,SUM(po)
+	,po
 FROM fielding
+WHERE yearid = '2016'
 )
 SELECT
 	position_groups
-	,po
+	,SUM(po) AS po_total
 FROM X
 GROUP BY position_groups
 
+--ANSWER: "Battery"	41424, "Infield"	58934, "Outfield"	29560
+
 -- Find the average number of strikeouts per game by decade since 1920. Round the numbers you report to 2 decimal places. Do the same for home runs per game. Do you see any trends?
 
+
+SELECT 
+	FLOOR(b.yearid / 10) * 10 AS decade
+	,ROUND(AVG(b.so::numeric / h.games::numeric), 2) AS avg_strikeout
+	,ROUND(AVG(b.hr::numeric / h.games::numeric), 2) AS avg_homeruns
+FROM batting AS b
+LEFT JOIN homegames AS h 
+ON b.yearid = h.year
+GROUP BY decade;
+
+--ANSWER: 
+
 -- Find the player who had the most success stealing bases in 2016, where success is measured as the percentage of stolen base attempts which are successful. (A stolen base attempt results either in a stolen base or being caught stealing.) Consider only players who attempted at least 20 stolen bases.
+
+
 
 -- From 1970 – 2016, what is the largest number of wins for a team that did not win the world series? What is the smallest number of wins for a team that did win the world series? Doing this will probably result in an unusually small number of wins for a world series champion – determine why this is the case. Then redo your query, excluding the problem year. How often from 1970 – 2016 was it the case that a team with the most wins also won the world series? What percentage of the time?
 
