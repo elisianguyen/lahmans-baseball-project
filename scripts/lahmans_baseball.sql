@@ -120,11 +120,8 @@ HAVING (SUM(sb::numeric) + SUM(cs::numeric)) >= 20
 ORDER BY sb_percentage DESC
 	)
 SELECT 
-	namegiven
-	,namefirst
+	namefirst
 	,namelast
-	,stolen_bases
-	,caught_stealing
 	,sb_percentage 
 	,RANK()OVER(ORDER BY sb_percentage DESC, stolen_bases DESC)
 FROM stats
@@ -148,7 +145,7 @@ AND wswin = 'N'
 GROUP BY team_name, yearid, wswin
 ORDER BY wins DESC;
 
-SELECT --SMALLEST NUMBER OF WINS FOR TEAM THAT DID WIN WS
+SELECT --SMALLEST NUMBER OF WINS FOR TEAM THAT DID WIN WS (WINDOW FUNCTION)
 	name AS team_name
 	,SUM(w) AS wins
 	,yearid
@@ -161,21 +158,29 @@ GROUP BY team_name, yearid, wswin
 ORDER BY wins ASC;
 
 --How often from 1970 – 2016 was it the case that a team with the most wins also won the world series? What percentage of the time?
---NEED TO FIX
-SELECT 
-	NAME,
-	MAX(W) as max_wins,
-	WSWIN,
-	YEARID
-FROM TEAMS
-WHERE yearid BETWEEN 1970 AND 2016
-GROUP BY NAME, WSWIN, YEARID, w
-ORDER BY YEARID;
+
+WITH maxwinsbyyear AS (
+SELECT
+	yearid
+	,MAX(w) AS max_wins
+    FROM teams
+    WHERE yearid BETWEEN 1970 AND 2016
+    GROUP BY yearid
+)
+SELECT
+	COUNT(*) AS count_seasons
+    ,ROUND((COUNT(*) * 100.0 / (SELECT COUNT(*) FROM maxwinsbyyear))) AS percentage
+FROM maxwinsbyyear AS mw
+JOIN TEAMS T
+ON MW.YEARID = T.YEARID
+WHERE mw.max_wins = t.w
+    AND t.wswin = 'Y';
 
 /*ANSWER1: 
 LARGEST, NO WORLD SERIES: 116 WINS -- 2001 -- SEATTLE MARINERS
 SMALLEST, YES WORLD SERIES: 63 LOS ANGELES DODGERS - DUE TO STRIKE IN 1981
 EXCLUDING 1981 THE ANSWER IS 83 IN 2016 ST LOUIS CARDINALS */
+--ANSWER 2: 26%
 
 -- 8. 
 --Using the attendance figures from the homegames table, 
@@ -267,7 +272,6 @@ USING (teamid, yearid)
 USING (playerid, yearid)
 WHERE a.awardid IS NOT NULL AND a.lgid IN ('NL', 'AL') AND a.awardid = 'TSN Manager of the Year';
 
-
 /* ANSWER
 "John"	"McNamara"	"Boston Red Sox"	1986
 "Hal"	"Lanier"	"Houston Astros"	1986
@@ -335,20 +339,28 @@ WHERE a.awardid IS NOT NULL AND a.lgid IN ('NL', 'AL') AND a.awardid = 'TSN Mana
 --Consider only players who have played in the league for at least 10 years, and who hit at least one home run in 2016. 
 --Report the players' first and last names and the number of home runs they hit in 2016.
 
-SELECT --MAX HOMERUNS
-	p.namefirst
-	,p.namelast
-	,b.hr AS highest_hr
-	,CAST(p.debut AS DATE) AS debut
-	,CAST(p.finalgame AS DATE) AS final_game
-	,DATEDIFF(yyyy, p.debut, p.finalgame)
-FROM BATTING AS b
+SELECT 
+	p.namefirst AS first_name
+	,p.namelast AS last_name
+	,MAX(s.hr) AS max_hr
+	,p.debut::DATE
+	,p.finalgame::DATE
+	,EXTRACT(YEARS FROM AGE(p.finalgame::DATE, p.debut::DATE))
+FROM 
+(
+SELECT 
+	playerid
+	,yearid
+	,hr
+FROM batting
+WHERE yearid = '2016'
+) AS s
 INNER JOIN people AS p
 USING (playerid)
-WHERE yearid = 2016
-ORDER BY highest_hr DESC;
-
-SELECT * FROM PEOPLE
+WHERE EXTRACT(YEARS FROM AGE(p.finalgame::DATE, p.debut::DATE)) >= 10
+GROUP BY playerid, P.finalgame, p.debut, p.namefirst, p.namelast
+HAVING MAX(s.hr) > 0
+ORDER BY max_hr DESC
 
 -- Open-ended questions
 
