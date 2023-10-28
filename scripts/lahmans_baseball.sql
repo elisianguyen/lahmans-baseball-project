@@ -165,11 +165,13 @@ SELECT
 	,MAX(w) AS max_wins
     FROM teams
     WHERE yearid BETWEEN 1970 AND 2016
+	AND yearid <> 1981 
     GROUP BY yearid
+	ORDER BY yearid
 )
 SELECT
 	COUNT(*) AS count_seasons
-    ,ROUND((COUNT(*) * 100.0 / (SELECT COUNT(*) FROM maxwinsbyyear))) AS percentage
+	,ROUND((COUNT(*) * 100.0 / (SELECT COUNT(*) FROM maxwinsbyyear)),2) AS percentage
 FROM maxwinsbyyear AS mw
 JOIN TEAMS T
 ON MW.YEARID = T.YEARID
@@ -180,7 +182,7 @@ WHERE mw.max_wins = t.w
 LARGEST, NO WORLD SERIES: 116 WINS -- 2001 -- SEATTLE MARINERS
 SMALLEST, YES WORLD SERIES: 63 LOS ANGELES DODGERS - DUE TO STRIKE IN 1981
 EXCLUDING 1981 THE ANSWER IS 83 IN 2016 ST LOUIS CARDINALS */
---ANSWER 2: 26%
+--ANSWER 2: 26.09%
 
 -- 8. 
 --Using the attendance figures from the homegames table, 
@@ -250,90 +252,12 @@ BOTTOM 5 AVG ATTENDANCE
 9.-- Which managers have won the TSN Manager of the Year award in both the National League (NL) and the American League (AL)? Give their full name and the teams that they were managing when they won the award.
 
 SELECT 
-	p.namefirst AS first_name
-	,p.namelast AS last_name
-	,subquery.NAME AS team_name
-	,a.yearid AS year_awarded
-FROM people AS p
-LEFT JOIN awardsmanagers AS a
-USING (playerid)
-INNER JOIN 
-(
-SELECT 
-	m.playerid
-	,m.yearid
-	,t.teamid
-	,t.name
-FROM managers AS m
-LEFT JOIN teams AS t
-USING (teamid, yearid)
--- WHERE m.playerid = 'lanieha01' AND M.yearid = '1986'
-) AS subquery
-USING (playerid, yearid)
-WHERE a.awardid IS NOT NULL AND a.lgid IN ('NL', 'AL') AND a.awardid = 'TSN Manager of the Year';
+	playerid
+	,awardid
+	,lgid AS al
+FROM awardsmanagers
+WHERE awardid = 'TSN Manager of the Year'
 
-/* ANSWER
-"John"	"McNamara"	"Boston Red Sox"	1986
-"Hal"	"Lanier"	"Houston Astros"	1986
-"Sparky"	"Anderson"	"Detroit Tigers"	1987
-"Buck"	"Rodgers"	"Montreal Expos"	1987
-"Tony"	"LaRussa"	"Oakland Athletics"	1988
-"Jim"	"Leyland"	"Pittsburgh Pirates"	1988
-"Frank"	"Robinson"	"Baltimore Orioles"	1989
-"Don"	"Zimmer"	"Chicago Cubs"	1989
-"Jeff"	"Torborg"	"Chicago White Sox"	1990
-"Jim"	"Leyland"	"Pittsburgh Pirates"	1990
-"Tom"	"Kelly"	"Minnesota Twins"	1991
-"Bobby"	"Cox"	"Atlanta Braves"	1991
-"Tony"	"LaRussa"	"Oakland Athletics"	1992
-"Jim"	"Leyland"	"Pittsburgh Pirates"	1992
-"Johnny"	"Oates"	"Baltimore Orioles"	1993
-"Bobby"	"Cox"	"Atlanta Braves"	1993
-"Buck"	"Showalter"	"New York Yankees"	1994
-"Felipe"	"Alou"	"Montreal Expos"	1994
-"Mike"	"Hargrove"	"Cleveland Indians"	1995
-"Don"	"Baylor"	"Colorado Rockies"	1995
-"Johnny"	"Oates"	"Texas Rangers"	1996
-"Bruce"	"Bochy"	"San Diego Padres"	1996
-"Davey"	"Johnson"	"Baltimore Orioles"	1997
-"Dusty"	"Baker"	"San Francisco Giants"	1997
-"Joe"	"Torre"	"New York Yankees"	1998
-"Bruce"	"Bochy"	"San Diego Padres"	1998
-"Jimy"	"Williams"	"Boston Red Sox"	1999
-"Bobby"	"Cox"	"Atlanta Braves"	1999
-"Jerry"	"Manuel"	"Chicago White Sox"	2000
-"Dusty"	"Baker"	"San Francisco Giants"	2000
-"Lou"	"Piniella"	"Seattle Mariners"	2001
-"Larry"	"Bowa"	"Philadelphia Phillies"	2001
-"Mike"	"Scioscia"	"Anaheim Angels"	2002
-"Bobby"	"Cox"	"Atlanta Braves"	2002
-"Tony"	"Pena"	"Kansas City Royals"	2003
-"Bobby"	"Cox"	"Atlanta Braves"	2003
-"Ron"	"Gardenhire"	"Minnesota Twins"	2004
-"Bobby"	"Cox"	"Atlanta Braves"	2004
-"Ozzie"	"Guillen"	"Chicago White Sox"	2005
-"Bobby"	"Cox"	"Atlanta Braves"	2005
-"Jim"	"Leyland"	"Detroit Tigers"	2006
-"Joe"	"Girardi"	"Florida Marlins"	2006
-"Eric"	"Wedge"	"Cleveland Indians"	2007
-"Bob"	"Melvin"	"Arizona Diamondbacks"	2007
-"Joe"	"Maddon"	"Tampa Bay Rays"	2008
-"Fredi"	"Gonzalez"	"Florida Marlins"	2008
-"Mike"	"Scioscia"	"Los Angeles Angels of Anaheim"	2009
-"Jim"	"Tracy"	"Colorado Rockies"	2009
-"Ron"	"Gardenhire"	"Minnesota Twins"	2010
-"Buddy"	"Black"	"San Diego Padres"	2010
-"Joe"	"Maddon"	"Tampa Bay Rays"	2011
-"Kirk"	"Gibson"	"Arizona Diamondbacks"	2011
-"Buck"	"Showalter"	"Baltimore Orioles"	2012
-"Davey"	"Johnson"	"Washington Nationals"	2012
-"John"	"Farrell"	"Boston Red Sox"	2013
-"Clint"	"Hurdle"	"Pittsburgh Pirates"	2013
-"Buck"	"Showalter"	"Baltimore Orioles"	2014
-"Matt"	"Williams"	"Washington Nationals"	2014
-"Paul"	"Molitor"	"Minnesota Twins"	2015
-"Terry"	"Collins"	"New York Mets"	2015
-*/
 
 10.-- Find all players who hit their career highest number of home runs in 2016. 
 --Consider only players who have played in the league for at least 10 years, and who hit at least one home run in 2016. 
@@ -343,9 +267,6 @@ SELECT
 	p.namefirst AS first_name
 	,p.namelast AS last_name
 	,MAX(s.hr) AS max_hr
-	,p.debut::DATE
-	,p.finalgame::DATE
-	,EXTRACT(YEARS FROM AGE(p.finalgame::DATE, p.debut::DATE))
 FROM 
 (
 SELECT 
@@ -360,11 +281,12 @@ USING (playerid)
 WHERE EXTRACT(YEARS FROM AGE(p.finalgame::DATE, p.debut::DATE)) >= 10
 GROUP BY playerid, P.finalgame, p.debut, p.namefirst, p.namelast
 HAVING MAX(s.hr) > 0
-ORDER BY max_hr DESC
+ORDER BY max_hr DESC;
 
 -- Open-ended questions
 
 -- Is there any correlation between number of wins and team salary? Use data from 2000 and later to answer this question. As you do this analysis, keep in mind that salaries across the whole league tend to increase together, so you may want to look on a year-by-year basis.
+
 
 -- In this question, you will explore the connection between number of wins and attendance.
 
