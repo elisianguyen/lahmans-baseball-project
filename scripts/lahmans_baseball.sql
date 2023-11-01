@@ -353,6 +353,7 @@ AND (SELECT COUNT(DISTINCT yearid) FROM batting WHERE playerid = ml.playerid) > 
 -- Open-ended questions
 
 11.-- Is there any correlation between number of wins and team salary? Use data from 2000 and later to answer this question. As you do this analysis, keep in mind that salaries across the whole league tend to increase together, so you may want to look on a year-by-year basis.
+
 SELECT
 	year,
 	team,
@@ -385,29 +386,35 @@ ORDER BY team, year;
 -- Does there appear to be any correlation between attendance at home games and number of wins?
 -- Do teams that win the world series see a boost in attendance the following year? What about teams that made the playoffs? Making the playoffs means either being a division winner or a wild card winner.
 
+WITH TeamStats AS (
+	SELECT
+		hg.year,
+		hg.team,
+		SUM(hg.attendance) AS total_attendance,
+		t.w AS wins,
+		t.wswin,
+		t.divwin,
+		t.wcwin
+	FROM homegames AS hg
+	INNER JOIN teams AS t
+	ON t.teamid = hg.team AND t.yearid = hg.year
+	GROUP BY hg.year, hg.team, t.wswin, t.divwin, t.wcwin, t.w
+)
+
 SELECT
-	year,
-	team,
-	attendance,
-	attendance_prev,
-	attendance - attendance_prev AS difference,
-	CASE WHEN attendance > attendance - attendance_prev THEN 'INCREASE' ELSE 'BLAH' END AS YURP
-FROM (
-SELECT 
-	hg.year AS year,
-	hg.team AS team,
-	t.w AS wins,
-	SUM(hg.attendance) AS attendance,
-	(SELECT SUM(hg2.attendance)
-		FROM homegames AS hg2
-		WHERE hg2.team = hg.team AND hg2.year = hg.year - 1) AS attendance_prev
-FROM homegames AS hg
-INNER JOIN teams AS t
-ON t.teamid = hg.team AND t.yearid = hg.year
-GROUP BY hg.year, hg.team, t.w
-ORDER BY team)
+	t1.year,
+	t1.team,
+	t1.total_attendance,
+	t2.total_attendance AS next_year_attendance,
+	CASE WHEN t2.wins > t1.wins THEN 'Increase' ELSE 'Decrease' END AS yoy_wins
+	CASE WHEN t2.total_attendance > t1.total_attendance THEN 'Increase' ELSE 'Decrease' END AS yoy_attendance,
+	CASE WHEN t1.wswin = 'Y' OR t1.divwin = 'Y' OR t1.wcwin = 'Y' THEN 'Y' ELSE 'N' END AS playoff_result
+FROM TeamStats t1
+LEFT JOIN TeamStats t2
+ON t1.team = t2.team AND t1.year + 1 = t2.year
+ORDER BY t1.team, t1.year;
 
-
+--ANSWER: 
 
 13.-- It is thought that since left-handed pitchers are more rare, causing batters to face them less often, that they are more effective. Investigate this claim and present evidence to either support or dispute this claim. First, determine just how rare left-handed pitchers are compared with right-handed pitchers. Are left-handed pitchers more likely to win the Cy Young Award? Are they more likely to make it into the hall of fame?
 
