@@ -76,9 +76,6 @@ SELECT
 FROM X
 GROUP BY position_groups;
 
-
-
-
 --ANSWER: "Battery"	41424, "Infield"	58934, "Outfield"	29560
 
 -- 5. Find the average number of strikeouts per game by decade since 1920. Round the numbers you report to 2 decimal places. Do the same for home runs per game. Do you see any trends?
@@ -92,7 +89,7 @@ WHERE yearid >= 1920
 GROUP BY decade
 ORDER BY decade;
 
---ANSWER: strikeouts and homeruns increase throughout decades
+--ANSWER: It seems that the average number of strikeouts increase throughout the decades and the avg homeruns stay consistent.
 
 -- 6. Find the player who had the most success stealing bases in 2016, where success is measured as the percentage of stolen base attempts which are successful. (A stolen base attempt results either in a stolen base or being caught stealing.) Consider only players who attempted at least 20 stolen bases.
 
@@ -202,12 +199,14 @@ WITH team_info AS ( --TOP 5 QUERY
 )
 
 SELECT
-	h.park,
+	p.park_name,
 	ti.team_name,
 	h.attendance / h.games AS avg_attendance
 FROM homegames AS h
 INNER JOIN team_info AS ti
 	ON h.team = ti.team_id
+INNER JOIN parks AS p
+	ON p.park = h.park 
 WHERE h.year = 2016
 	AND games > 10
 ORDER BY RANK() OVER (ORDER BY h.attendance / h.games DESC)
@@ -225,12 +224,14 @@ WITH team_info AS ( -- BOTTOM 5 QUERY
 )
 
 SELECT
-	h.park,
+	p.park_name,
 	ti.team_name,
 	h.attendance / h.games AS avg_attendance
 FROM homegames AS h
 INNER JOIN team_info AS ti
 	ON h.team = ti.team_id
+INNER JOIN parks AS p
+	ON p.park = h.park
 WHERE h.year = 2016
 	AND games > 10
 ORDER BY RANK() OVER (ORDER BY h.attendance / h.games ASC)
@@ -239,34 +240,21 @@ LIMIT 5;
 
 /* ANSWER
 TOP 5 AVG ATTENDANCE
-"LOS03"	"Los Angeles Dodgers"	45719
-"STL10"	"St. Louis Cardinals"	42524
-"TOR02"	"Toronto Blue Jays"	41877
-"SFO03"	"San Francisco Giants"	41546
-"CHI11"	"Chicago Cubs"	39906
+"Dodger Stadium"	"Los Angeles Dodgers"	45719
+"Busch Stadium III"	"St. Louis Cardinals"	42524
+"Rogers Centre"	"Toronto Blue Jays"	41877
+"AT&T Park"	"San Francisco Giants"	41546
+"Wrigley Field"	"Chicago Cubs"	39906
 
 BOTTOM 5 AVG ATTENDANCE
-"STP01"	"Tampa Bay Rays"	15878
-"OAK01"	"Oakland Athletics"	18784
-"CLE08"	"Cleveland Indians"	19650
-"MIA02"	"Miami Marlins"	21405
-"CHI12"	"Chicago White Sox"	21559
+"Tropicana Field"	"Tampa Bay Rays"	15878
+"Oakland-Alameda County Coliseum"	"Oakland Athletics"	18784
+"Progressive Field"	"Cleveland Indians"	19650
+"Marlins Park"	"Miami Marlins"	21405
+"U.S. Cellular Field"	"Chicago White Sox"	21559
 */
 
 9.-- Which managers have won the TSN Manager of the Year award in both the National League (NL) and the American League (AL)? Give their full name and the teams that they were managing when they won the award.
-
-/* ANSWER: 
-DAVEY JOHNSON WON ONCE IN AL AND ONCE IN NL
-JIM LEYLAND WON 3 TIMES IN NL AND ONCE IN AL
-RESULTS AS FOLLOWS:
-
-"Davey Johnson"	1997	"AL"	"Baltimore Orioles"
-"Davey Johnson"	2012	"NL"	"Washington Nationals"
-"Jim Leyland"	1988	"NL"	"Pittsburgh Pirates"
-"Jim Leyland"	1990	"NL"	"Pittsburgh Pirates"
-"Jim Leyland"	1992	"NL"	"Pittsburgh Pirates"
-"Jim Leyland"	2006	"AL"	"Detroit Tigers"
-*/
 
 WITH cte AS (
 	SELECT 
@@ -305,6 +293,19 @@ INNER JOIN (
 ) AS teams USING (playerid, yearid)
 ORDER BY manager_name;
 
+/* ANSWER: 
+DAVEY JOHNSON WON ONCE IN AL AND ONCE IN NL
+JIM LEYLAND WON 3 TIMES IN NL AND ONCE IN AL
+
+RESULTS AS FOLLOWS:
+"Davey Johnson"	1997	"AL"	"Baltimore Orioles"
+"Davey Johnson"	2012	"NL"	"Washington Nationals"
+"Jim Leyland"	1988	"NL"	"Pittsburgh Pirates"
+"Jim Leyland"	1990	"NL"	"Pittsburgh Pirates"
+"Jim Leyland"	1992	"NL"	"Pittsburgh Pirates"
+"Jim Leyland"	2006	"AL"	"Detroit Tigers"
+*/
+
 10.-- Find all players who hit their career highest number of home runs in 2016. 
 --Consider only players who have played in the league for at least 10 years, and who hit at least one home run in 2016. 
 --Report the players' first and last names and the number of home runs they hit in 2016.
@@ -321,7 +322,6 @@ WITH max_list AS (
 )
 SELECT 
 	p.namefirst ||' '|| p.namelast AS player_name,
-	ml.playerid,
 	ml.max_hr
 FROM max_list AS ml
 INNER JOIN people AS p
@@ -329,31 +329,27 @@ ON ml.playerid = p.playerid
 WHERE EXTRACT(YEARS FROM AGE(p.finalgame::DATE, p.debut::DATE)) >= 10
 AND ml.max_hr = (SELECT MAX(hr) FROM batting WHERE playerid = ml.playerid);
 
-
-WITH max_list AS (
-	SELECT 
-		b.playerid,
-		b.yearid,
-		MAX(b.hr) AS max_hr
-	FROM batting AS b
-	WHERE yearid = '2016'
-	GROUP BY b.playerid, b.yearid
-	HAVING MAX(b.hr) > 0
-)
-SELECT 
-	p.namefirst || ' ' || p.namelast AS player_name,
-	ml.playerid,
-	ml.max_hr
-FROM max_list AS ml
-INNER JOIN people AS p
-ON ml.playerid = p.playerid
-WHERE ml.max_hr = (SELECT MAX(hr) FROM batting WHERE playerid = ml.playerid)
-AND (SELECT COUNT(DISTINCT yearid) FROM batting WHERE playerid = ml.playerid) > 9;
+/* ANSWER:
+"Mike Napoli"	34
+"Robinson Cano"	39
+"Adam Wainwright"	2
+"Francisco Liriano"	1
+"Angel Pagan"	12
+"Bartolo Colon"	1
+"Edwin Encarnacion"	42
+"Rajai Davis"	12 
+*/
 
 -- Open-ended questions
 
 11.-- Is there any correlation between number of wins and team salary? Use data from 2000 and later to answer this question. As you do this analysis, keep in mind that salaries across the whole league tend to increase together, so you may want to look on a year-by-year basis.
 
+SELECT
+	team,
+	COUNT(year) AS count_years,
+	AVG(perc_change) AS avg_perc_change,
+	AVG(correlation) AS avg_correlation
+FROM (
 SELECT
 	year,
 	team,
@@ -376,45 +372,119 @@ FROM(
 	WHERE s.yearid >= 2000 
 	GROUP BY s.yearid, s.teamid, t.w, t.teamid
 	ORDER BY t.teamid, s.yearid
-) sub
+) primary_sub --Calculates percent change and correlation by year by team
 GROUP BY year, team, total_salary, wins, perc_change
-ORDER BY team, year;
+ORDER BY team, year
+) final_sub
+GROUP BY team --Calculates avg percent change and correlation by year by team
 
---ANSWER: 
+--ANSWER: There does not appear to be a correlation between number of wins and team salary. 
 
 12.-- In this question, you will explore the connection between number of wins and attendance.
 -- Does there appear to be any correlation between attendance at home games and number of wins?
 -- Do teams that win the world series see a boost in attendance the following year? What about teams that made the playoffs? Making the playoffs means either being a division winner or a wild card winner.
 
-WITH TeamStats AS (
+SELECT 
+	ROUND(SUM(wins_vs_attendance::numeric) / COUNT(wins_vs_attendance::numeric),2) AS wa_percent, --win and attendance percentage
+	ROUND(SUM(wswin_vs_attendance::numeric) / COUNT(wswin_vs_attendance::numeric),2) AS wsa_percent, --ws and attendance percentage
+	ROUND(SUM(playoff_vs_attendance::numeric) / COUNT(playoff_vs_attendance::numeric),2) AS poa_percent --playoff and attendance perc
+FROM (
 	SELECT
-		hg.year,
-		hg.team,
-		SUM(hg.attendance) AS total_attendance,
-		t.w AS wins,
-		t.wswin,
-		t.divwin,
-		t.wcwin
-	FROM homegames AS hg
-	INNER JOIN teams AS t
-	ON t.teamid = hg.team AND t.yearid = hg.year
-	GROUP BY hg.year, hg.team, t.wswin, t.divwin, t.wcwin, t.w
+		year,
+		team,
+		CASE WHEN wins < wins_fy AND attendance < attendance_fy THEN 1 ELSE 0
+		END AS wins_vs_attendance,
+		CASE WHEN ws_winner = 'Y' AND attendance_fy > attendance THEN 1 ELSE 0
+		END AS wswin_vs_attendance,
+		CASE WHEN playoff = 'Y' AND attendance_fy > attendance THEN 1 ELSE 0
+		END AS playoff_vs_attendance
+FROM (
+		SELECT 
+			hg.year AS year,
+			hg.team AS team,
+			SUM(hg.attendance) AS attendance,
+			LEAD(SUM(hg.attendance))OVER(PARTITION BY hg.team ORDER BY hg.year) AS attendance_fy,
+
+			SUM(t.w) AS wins,
+			LEAD(SUM(t.w))OVER(PARTITION BY hg.team ORDER BY hg.year) AS wins_fy,
+
+			t.wswin AS WS_Winner,
+			CASE WHEN divwin = 'Y' OR wcwin = 'Y' THEN 'Y' 
+				WHEN divwin = 'N' AND wcwin = 'N' THEN 'N' ELSE 'N' 
+				END AS playoff
+		FROM homegames AS hg
+		INNER JOIN teams AS t
+		ON t.teamid = hg.team AND t.yearid = hg.year
+		GROUP BY hg.year, hg.team, hg.attendance, t.wswin, t.divwin, t.wcwin
+		ORDER BY hg.team, hg.year
 )
+WHERE attendance_fy IS NOT NULL
+)
+/* ANSWER: 
+28% of games that saw an increase in wins, saw an increase in attendance.
+2% of games where the team won the world series saw an increase in attendance.
+6% of teams who made the playoffs seen an increase in attendance.
+*/ 
 
+13.-- It is thought that since left-handed pitchers are more rare, causing batters to face them less often, that they are more effective. Investigate this claim and present evidence to either support or dispute this claim. 
+--First, determine just how rare left-handed pitchers are compared with right-handed pitchers. 
+--Are left-handed pitchers more likely to win the Cy Young Award? 
+--Are they more likely to make it into the hall of fame?
+
+SELECT --Part 1
+	ROUND(SUM(right_hand::NUMERIC) / COUNT(right_hand::NUMERIC), 2) AS perc_right,
+	ROUND(SUM(left_hand::NUMERIC) / COUNT(playerid), 2) AS perc_left
+FROM (
 SELECT
-	t1.year,
-	t1.team,
-	t1.total_attendance,
-	t2.total_attendance AS next_year_attendance,
-	CASE WHEN t2.wins > t1.wins THEN 'Increase' ELSE 'Decrease' END AS yoy_wins
-	CASE WHEN t2.total_attendance > t1.total_attendance THEN 'Increase' ELSE 'Decrease' END AS yoy_attendance,
-	CASE WHEN t1.wswin = 'Y' OR t1.divwin = 'Y' OR t1.wcwin = 'Y' THEN 'Y' ELSE 'N' END AS playoff_result
-FROM TeamStats t1
-LEFT JOIN TeamStats t2
-ON t1.team = t2.team AND t1.year + 1 = t2.year
-ORDER BY t1.team, t1.year;
+	p.playerid, bats,
+	CASE WHEN p.bats = 'R' THEN 1 
+		WHEN p.bats = 'L' THEN 0 
+		WHEN p.bats = 'B' THEN 1 
+	ELSE 99999999 END AS right_hand,
+	CASE WHEN p.bats = 'L' THEN 1 
+		WHEN p.bats = 'R' THEN 0 
+	WHEN p.bats = 'B' THEN 1 ELSE 99999999 
+	END AS left_hand
+FROM people AS p
+WHERE playerid IN (--part 2 added sub in where clause
+	SELECT playerid
+	FROM awardsplayers
+	WHERE awardid = 'Cy Young Award')
+-- INNER JOIN halloffame as hf
+-- ON hf.playerid = sub.playerid
+AND bats IS NOT NULL);
 
---ANSWER: 
+SELECT playerid
+FROM halloffame
+WHERE inducted = 'Y'
 
-13.-- It is thought that since left-handed pitchers are more rare, causing batters to face them less often, that they are more effective. Investigate this claim and present evidence to either support or dispute this claim. First, determine just how rare left-handed pitchers are compared with right-handed pitchers. Are left-handed pitchers more likely to win the Cy Young Award? Are they more likely to make it into the hall of fame?
+----------
+SELECT --Part 3
+	ROUND(SUM(right_hand::NUMERIC) / COUNT(right_hand::NUMERIC), 2) AS perc_right,
+	ROUND(SUM(left_hand::NUMERIC) / COUNT(playerid), 2) AS perc_left
+FROM (
+SELECT
+	p.playerid, bats,
+	CASE WHEN p.bats = 'R' THEN 1 
+		WHEN p.bats = 'L' THEN 0 
+		WHEN p.bats = 'B' THEN 1 
+	ELSE 99999999 END AS right_hand,
+	CASE WHEN p.bats = 'L' THEN 1 
+		WHEN p.bats = 'R' THEN 0 
+	WHEN p.bats = 'B' THEN 1 ELSE 99999999 
+	END AS left_hand
+FROM people AS p
+WHERE playerid IN (--part 2
+	SELECT playerid
+FROM halloffame
+WHERE inducted = 'Y')
+-- INNER JOIN halloffame as hf
+-- ON hf.playerid = sub.playerid
+AND bats IS NOT NULL);
 
+/* ANSWER:
+
+Part 1: 34% vs 72% of pitchers are left handed. 
+Part 2: 35% of pitchers left handed pitchers received the CY Young Award, making them less likely to win. 
+Part 3: 40% of pitchers that have made it to the hall of fame are left handed, and are more likely to make it to the hall of fame vs receiving hte CY Young award. They are still less likely to make it to the hall of fame vs right hand pitchers.
+*/
