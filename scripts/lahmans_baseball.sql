@@ -436,27 +436,41 @@ SELECT --Part 1
 	ROUND(SUM(left_hand::NUMERIC) / COUNT(playerid), 2) AS perc_left
 FROM (
 SELECT
-	p.playerid, bats,
-	CASE WHEN p.bats = 'R' THEN 1 
-		WHEN p.bats = 'L' THEN 0 
-		WHEN p.bats = 'B' THEN 1 
-	ELSE 99999999 END AS right_hand,
-	CASE WHEN p.bats = 'L' THEN 1 
-		WHEN p.bats = 'R' THEN 0 
-	WHEN p.bats = 'B' THEN 1 ELSE 99999999 
+	p.playerid, p.throws,
+	CASE WHEN p.throws = 'R' THEN 1 
+		WHEN p.throws = 'L' THEN 0 
+		ELSE 999999 END AS right_hand,
+	CASE WHEN p.throws = 'L' THEN 1 
+		WHEN p.throws = 'R' THEN 0 
+	ELSE 999999 
+	END AS left_hand
+FROM people AS p
+WHERE playerid IN (--part 2 added sub in where clause
+	SELECT playerid
+	FROM awardsplayers
+	)
+AND throws IS NOT NULL);
+
+
+SELECT --Part 2
+	ROUND(SUM(right_hand::NUMERIC) / COUNT(right_hand::NUMERIC), 2) AS perc_right,
+	ROUND(SUM(left_hand::NUMERIC) / COUNT(playerid), 2) AS perc_left
+FROM (
+SELECT
+	p.playerid, p.throws,
+	CASE WHEN p.throws = 'R' THEN 1 
+		WHEN p.throws = 'L' THEN 0 
+		ELSE 999999 END AS right_hand,
+	CASE WHEN p.throws = 'L' THEN 1 
+		WHEN p.throws = 'R' THEN 0 
+	ELSE 999999 
 	END AS left_hand
 FROM people AS p
 WHERE playerid IN (--part 2 added sub in where clause
 	SELECT playerid
 	FROM awardsplayers
 	WHERE awardid = 'Cy Young Award')
--- INNER JOIN halloffame as hf
--- ON hf.playerid = sub.playerid
 AND bats IS NOT NULL);
-
-SELECT playerid
-FROM halloffame
-WHERE inducted = 'Y'
 
 ----------
 SELECT --Part 3
@@ -464,27 +478,23 @@ SELECT --Part 3
 	ROUND(SUM(left_hand::NUMERIC) / COUNT(playerid), 2) AS perc_left
 FROM (
 SELECT
-	p.playerid, bats,
-	CASE WHEN p.bats = 'R' THEN 1 
-		WHEN p.bats = 'L' THEN 0 
-		WHEN p.bats = 'B' THEN 1 
-	ELSE 99999999 END AS right_hand,
-	CASE WHEN p.bats = 'L' THEN 1 
-		WHEN p.bats = 'R' THEN 0 
-	WHEN p.bats = 'B' THEN 1 ELSE 99999999 
+	p.playerid, p.throws,
+	CASE WHEN p.throws = 'R' THEN 1 
+		WHEN p.throws = 'L' THEN 0 
+		ELSE 999999 END AS right_hand,
+	CASE WHEN p.throws = 'L' THEN 1 
+		WHEN p.throws = 'R' THEN 0 
+	ELSE 999999 
 	END AS left_hand
 FROM people AS p
 WHERE playerid IN (--part 2
 	SELECT playerid
 FROM halloffame
 WHERE inducted = 'Y')
--- INNER JOIN halloffame as hf
--- ON hf.playerid = sub.playerid
 AND bats IS NOT NULL);
 
 /* ANSWER:
-
-Part 1: 34% vs 72% of pitchers are left handed. 
-Part 2: 35% of pitchers left handed pitchers received the CY Young Award, making them less likely to win. 
-Part 3: 40% of pitchers that have made it to the hall of fame are left handed, and are more likely to make it to the hall of fame vs receiving hte CY Young award. They are still less likely to make it to the hall of fame vs right hand pitchers.
+Part 1: 19% of pitchers are left handed pitchers which makes them rare.
+Part 2: 31% of pitchers that were left handed won the CY Award, however, they are less likely to win the award due to the fact that there are less left handed pitchers in the population. 
+Part 3: 18% of left handed pitchers have made it to the hall of fame.
 */
