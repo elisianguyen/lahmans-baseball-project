@@ -237,7 +237,6 @@ WHERE h.year = 2016
 ORDER BY RANK() OVER (ORDER BY h.attendance / h.games ASC)
 LIMIT 5;
 
-
 /* ANSWER
 TOP 5 AVG ATTENDANCE
 "Dodger Stadium"	"Los Angeles Dodgers"	45719
@@ -404,10 +403,8 @@ FROM (
 			hg.team AS team,
 			SUM(hg.attendance) AS attendance,
 			LEAD(SUM(hg.attendance))OVER(PARTITION BY hg.team ORDER BY hg.year) AS attendance_fy,
-
 			SUM(t.w) AS wins,
 			LEAD(SUM(t.w))OVER(PARTITION BY hg.team ORDER BY hg.year) AS wins_fy,
-
 			t.wswin AS WS_Winner,
 			CASE WHEN divwin = 'Y' OR wcwin = 'Y' THEN 'Y' 
 				WHEN divwin = 'N' AND wcwin = 'N' THEN 'N' ELSE 'N' 
@@ -470,7 +467,7 @@ WHERE playerid IN (--part 2 added sub in where clause
 	SELECT playerid
 	FROM awardsplayers
 	WHERE awardid = 'Cy Young Award')
-AND bats IS NOT NULL);
+AND throws IS NOT NULL);
 
 ----------
 SELECT --Part 3
@@ -491,7 +488,7 @@ WHERE playerid IN (--part 2
 	SELECT playerid
 FROM halloffame
 WHERE inducted = 'Y')
-AND bats IS NOT NULL);
+AND throws IS NOT NULL);
 
 /* ANSWER:
 Part 1: 19% of pitchers are left handed pitchers which makes them rare.
